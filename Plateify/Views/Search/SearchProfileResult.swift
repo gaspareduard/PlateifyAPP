@@ -1,21 +1,27 @@
 import SwiftUI
 
 struct SearchProfileResult: View {
-    let user: User
+    let searchedUser: UserSummary
+    let chatVM: ChatListViewModel
+    let friendVM: FriendViewModel
+    
 
+    
     var body: some View {
         VStack {
             
             ScrollView {
                 
                 VStack(spacing: 0) {
-                    ProfileImage(user: user)
+                    ProfileImage(searchedUser: searchedUser)
                     
-                    VStack{
-                        ProfileName(user: user)
-                    }.padding(.vertical,25)
                     
-                    AboutProfileAndStats(user: user)
+                    ProfileNameAndNumberPlate(searchedUser: searchedUser)
+                        .padding(.horizontal)
+                        .padding(.vertical,25)
+                        
+                    
+                    AboutProfileAndStats(searchedUser: searchedUser)
                 }
             }
             ActionButtons()
@@ -24,20 +30,13 @@ struct SearchProfileResult: View {
     }
 }
 
-// MARK: - Preview
-struct SearchProfileResult_Previews: PreviewProvider {
-    static var previews: some View {
-        SearchProfileResult(user: TestData.testUser)
-    }
-} 
-
 extension SearchProfileResult{
     
     struct ProfileImage: View {
-        let user: User
+        let searchedUser: UserSummary
         var body: some View {
             ZStack(alignment: .bottom) {
-                AsyncImage(url: URL(string: user.profileImageURL ?? "")) { image in
+                AsyncImage(url: URL(string: searchedUser.profileImageURL ?? "")) { image in
                     image
                         .resizable()
                         .scaledToFill()
@@ -50,30 +49,31 @@ extension SearchProfileResult{
                 .cornerRadius(10,corners: .bottomLeft)
                 .cornerRadius(10,corners: .bottomRight)
                 
-                NumberPlateDisplayView(plate: user.plateNumbers.first ?? "")
-                    .scaleEffect(1.3)
-                    .padding(.bottom)
             }
         }
     }
     
-    struct ProfileName: View {
-        let user: User
+    struct ProfileNameAndNumberPlate: View {
+        let searchedUser: UserSummary
         var body: some View {
-            HStack(alignment: .lastTextBaseline){
-                Text(user.firstName)
-                    .font(.title)
-                    .fontWeight(.bold)
+            VStack(alignment: .leading,spacing: 5){
+                HStack(alignment: .lastTextBaseline){
+                    Text(searchedUser.firstName)
+                        .font(.title)
+                        .fontWeight(.bold)
+                    
+                    //years old need to implement field
+                    Text("28")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.gray)
+                    
+                    Spacer()
+                }
                 
-                //years old need to implement field
-                Text("28")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color.gray)
-                
-                Spacer()
-                
-            }.padding(.horizontal)
+                NumberPlateDisplayView(plate: searchedUser.plateNumbers.first ?? "")
+                    .padding(.bottom)
+            }
         }
     }
     
@@ -112,12 +112,12 @@ extension SearchProfileResult{
     
     
     struct AboutProfileAndStats: View {
-        let user: User
+        let searchedUser: UserSummary
         
         var body: some View {
             VStack() {
                 
-                if let bio = user.bio, !bio.isEmpty {
+                if let bio = searchedUser.bio, !bio.isEmpty {
                     
                     VStack(alignment:.leading,spacing: 9){
                         HStack(){
@@ -157,8 +157,45 @@ extension SearchProfileResult{
     
 }
 
+private struct PreviewAsync<Content: View>: View {
+    let content: () async -> Content
+    @State private var view: Content?
 
+    var body: some View {
+        Group {
+            if let view = view {
+                view
+            } else {
+                ProgressView()
+                    .task {
+                        view = await content()
+                    }
+            }
+        }
+    }
+}
 
+struct SearchProfileResult_Previews: PreviewProvider {
+    static var previews: some View {
+        let userService   = TestData.mockUserService()
+        let chatService   = TestData.mockChatService()
+        let searchedUser  = TestData.mockSearchResults().first!
+        let userSummary   = UserSummary(
+            id: searchedUser.id,
+            firstName: searchedUser.firstName!,
+            lastName:  searchedUser.lastName!,
+            profileImageURL: searchedUser.profileImageURL,
+            plateNumbers: [searchedUser.plate],
+            age: 28,
+            bio: "Car enthusiast and road trip lover 🚗",
+            sex: "female"
+        )
 
-
-
+        return SearchProfileResult(
+            searchedUser: userSummary,
+            chatVM:   ChatListViewModel(chatService: chatService),
+            friendVM: FriendViewModel(friendService: FriendService(),
+                                      userService: userService)
+        )
+    }
+}

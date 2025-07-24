@@ -1,7 +1,7 @@
 import SwiftUI
 import FirebaseAuth
 
-struct ChatView: View {
+struct ChatWithUserView: View {
     let chat: Chat
     @ObservedObject var viewModel: ChatListViewModel
     @State private var messageText = ""
@@ -9,7 +9,7 @@ struct ChatView: View {
     
     private var currentUserId: String? { Auth.auth().currentUser?.uid }
     private var otherUserId: String? { chat.participants.first { $0 != currentUserId } }
-    private var otherUser: User? { otherUserId.flatMap { viewModel.userProfiles[$0] } }
+    private var otherUser: UserSummary? { viewModel.getParticipantSummary(for: chat) }
     private var messages: [Message] { viewModel.messages }
     
     var body: some View {
@@ -18,7 +18,7 @@ struct ChatView: View {
             MessageInputBar(messageText: $messageText, isInputFocused: _isInputFocused, onSend: sendMessage)
         }
         .chatToolbar(
-            displayName: otherUser?.firstName ?? "",
+            displayName: otherUser?.displayName ?? "",
             profileImageURL: otherUser?.profileImageURL
         )
         .navigationBarTitleDisplayMode(.inline)
@@ -120,13 +120,6 @@ private struct ChatToolbar: ToolbarContent {
     let displayName: String
     let profileImageURL: String?
     var body: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button(action: {}) {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-            }
-        }
         ToolbarItem(placement: .principal) {
             Text(displayName)
                 .font(.headline)

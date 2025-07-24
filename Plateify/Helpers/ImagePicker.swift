@@ -1,3 +1,11 @@
+//
+//  ImagePicker.swift
+//  Plateify
+//
+//  Created by Eduard Gaspar on 15.05.2025.
+//
+
+
 import SwiftUI
 
 struct ImagePicker: UIViewControllerRepresentable {

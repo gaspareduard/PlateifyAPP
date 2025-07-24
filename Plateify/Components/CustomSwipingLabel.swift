@@ -10,15 +10,16 @@ import SwiftUI
 /// A red "Skip" label to display behind a swiping card.
 struct SkipLabel: View {
     var body: some View {
-        Text("SKIP")
-            .font(.headline)
-            .fontWeight(.bold)
-            .foregroundColor(.white)
+        Text("NOPE")
+            .font(.title)
+            .fontWeight(.heavy)
+            .foregroundColor(.red)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.red)
+                    .stroke(Color.red, lineWidth: 4)
+                    .fill(Color.clear)
             )
     }
 }
@@ -27,14 +28,15 @@ struct SkipLabel: View {
 struct LikeLabel: View {
     var body: some View {
         Text("LIKE")
-            .font(.headline)
-            .fontWeight(.bold)
-            .foregroundColor(.white)
+            .font(.title)
+            .fontWeight(.heavy)
+            .foregroundColor(.green)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.green)
+                    .stroke(Color.green, lineWidth: 4)
+                    .fill(Color.clear)
             )
     }
 }

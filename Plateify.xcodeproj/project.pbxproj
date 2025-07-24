@@ -6,6 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D94091542DD3C462006BDB0F /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = D94091532DD3C462006BDB0F /* FirebaseAuth */; };
+		D94091562DD3C462006BDB0F /* FirebaseAuthCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = D94091552DD3C462006BDB0F /* FirebaseAuthCombine-Community */; };
+		D94091582DD3C462006BDB0F /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = D94091572DD3C462006BDB0F /* FirebaseCore */; };
+		D940915A2DD3C462006BDB0F /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = D94091592DD3C462006BDB0F /* FirebaseDatabase */; };
+		D940915C2DD3C462006BDB0F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = D940915B2DD3C462006BDB0F /* FirebaseFirestore */; };
+		D940915E2DD3C462006BDB0F /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = D940915D2DD3C462006BDB0F /* FirebaseFirestoreCombine-Community */; };
+		D94091602DD3C462006BDB0F /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = D940915F2DD3C462006BDB0F /* FirebaseFunctions */; };
+		D94091622DD3C462006BDB0F /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = D94091612DD3C462006BDB0F /* FirebaseMessaging */; };
+		D94091642DD3C462006BDB0F /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = D94091632DD3C462006BDB0F /* FirebaseStorage */; };
+		D94091662DD3C462006BDB0F /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = D94091652DD3C462006BDB0F /* FirebaseStorageCombine-Community */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		D90123362D965A0F00DB3164 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -35,16 +48,6 @@
 			path = Plateify;
 			sourceTree = "<group>";
 		};
-		D90123382D965A0F00DB3164 /* PlateifyTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PlateifyTests;
-			sourceTree = "<group>";
-		};
-		D90123422D965A0F00DB3164 /* PlateifyUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PlateifyUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +55,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D94091622DD3C462006BDB0F /* FirebaseMessaging in Frameworks */,
+				D94091542DD3C462006BDB0F /* FirebaseAuth in Frameworks */,
+				D94091662DD3C462006BDB0F /* FirebaseStorageCombine-Community in Frameworks */,
+				D94091642DD3C462006BDB0F /* FirebaseStorage in Frameworks */,
+				D94091602DD3C462006BDB0F /* FirebaseFunctions in Frameworks */,
+				D94091582DD3C462006BDB0F /* FirebaseCore in Frameworks */,
+				D940915A2DD3C462006BDB0F /* FirebaseDatabase in Frameworks */,
+				D940915E2DD3C462006BDB0F /* FirebaseFirestoreCombine-Community in Frameworks */,
+				D940915C2DD3C462006BDB0F /* FirebaseFirestore in Frameworks */,
+				D94091562DD3C462006BDB0F /* FirebaseAuthCombine-Community in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -76,8 +89,6 @@
 			isa = PBXGroup;
 			children = (
 				D90123272D965A0D00DB3164 /* Plateify */,
-				D90123382D965A0F00DB3164 /* PlateifyTests */,
-				D90123422D965A0F00DB3164 /* PlateifyUITests */,
 				D90123262D965A0D00DB3164 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -112,6 +123,16 @@
 			);
 			name = Plateify;
 			packageProductDependencies = (
+				D94091532DD3C462006BDB0F /* FirebaseAuth */,
+				D94091552DD3C462006BDB0F /* FirebaseAuthCombine-Community */,
+				D94091572DD3C462006BDB0F /* FirebaseCore */,
+				D94091592DD3C462006BDB0F /* FirebaseDatabase */,
+				D940915B2DD3C462006BDB0F /* FirebaseFirestore */,
+				D940915D2DD3C462006BDB0F /* FirebaseFirestoreCombine-Community */,
+				D940915F2DD3C462006BDB0F /* FirebaseFunctions */,
+				D94091612DD3C462006BDB0F /* FirebaseMessaging */,
+				D94091632DD3C462006BDB0F /* FirebaseStorage */,
+				D94091652DD3C462006BDB0F /* FirebaseStorageCombine-Community */,
 			);
 			productName = Plateify;
 			productReference = D90123252D965A0D00DB3164 /* Plateify.app */;
@@ -129,9 +150,6 @@
 			);
 			dependencies = (
 				D90123372D965A0F00DB3164 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				D90123382D965A0F00DB3164 /* PlateifyTests */,
 			);
 			name = PlateifyTests;
 			packageProductDependencies = (
@@ -152,9 +170,6 @@
 			);
 			dependencies = (
 				D90123412D965A0F00DB3164 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				D90123422D965A0F00DB3164 /* PlateifyUITests */,
 			);
 			name = PlateifyUITests;
 			packageProductDependencies = (
@@ -195,6 +210,9 @@
 			);
 			mainGroup = D901231C2D965A0D00DB3164;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D90123262D965A0D00DB3164 /* Products */;
 			projectDirPath = "";
@@ -393,11 +411,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Plateify/Preview Content\"";
+				DEVELOPMENT_TEAM = YF8LC9C327;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationTemporaryUsageDescriptionDictionary = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationUsageDescription = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "The app requests When in Use or Always authorization.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -410,6 +435,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = comEduardGaspar.Plateify;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -421,11 +447,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Plateify/Preview Content\"";
+				DEVELOPMENT_TEAM = YF8LC9C327;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationTemporaryUsageDescriptionDictionary = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationUsageDescription = "The app requests When in Use or Always authorization.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "The app requests When in Use or Always authorization.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -438,6 +471,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = comEduardGaspar.Plateify;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -552,6 +586,70 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.12.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D94091532DD3C462006BDB0F /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		D94091552DD3C462006BDB0F /* FirebaseAuthCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseAuthCombine-Community";
+		};
+		D94091572DD3C462006BDB0F /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		D94091592DD3C462006BDB0F /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		D940915B2DD3C462006BDB0F /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		D940915D2DD3C462006BDB0F /* FirebaseFirestoreCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseFirestoreCombine-Community";
+		};
+		D940915F2DD3C462006BDB0F /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		D94091612DD3C462006BDB0F /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		D94091632DD3C462006BDB0F /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		D94091652DD3C462006BDB0F /* FirebaseStorageCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D94091522DD3C462006BDB0F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseStorageCombine-Community";
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D901231D2D965A0D00DB3164 /* Project object */;
 }

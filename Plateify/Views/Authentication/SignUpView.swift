@@ -12,348 +12,126 @@ import FirebaseFirestore
 struct SignUpView: View {
     @Environment(\.isPreview) private var isPreview
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
-    @State private var email: String = ""
-    @State private var password: String = ""
-    @State private var firstName: String = ""
-    @State private var lastName: String = ""
-    @State private var plateNumbers: [String] = []
-    @State private var confirmPassword: String = ""
-    @State private var showTermsOfService: Bool = false
-    @State private var showError: Bool = false
-    @State private var errorMessage: String = ""
-    @State private var isLoading: Bool = false
-    @State private var showPassword: Bool = false
-    @State private var showConfirmPassword: Bool = false
-    @State private var goToSignIn: Bool = false
-    @State private var agreedToTerms: Bool = false
+    @Environment(\.dismiss) private var dismiss
     
-    // Validation states
-    @State private var isEmailValid: Bool = false
-    @State private var isPasswordValid: Bool = false
-    @State private var isFirstNameValid: Bool = false
-    @State private var isLastNameValid: Bool = false
-    @State private var isPlateNumberValid: Bool = true // Default to true since it's optional
-    @State private var doPasswordsMatch: Bool = false
+    // MARK: - Form State
+    @State private var firstName = ""
+    @State private var lastName = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var confirmPassword = ""
+    @State private var agreedToTerms = false
+
+    // MARK: - Validation & Errors
+    @State private var firstNameError = ""
+    @State private var lastNameError = ""
+    @State private var emailError = ""
+    @State private var passwordError = ""
+    @State private var confirmPasswordError = ""
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
-    // Error messages
-    @State private var emailError: String = ""
-    @State private var passwordError: String = ""
-    @State private var firstNameError: String = ""
-    @State private var lastNameError: String = ""
-    @State private var plateNumberError: String = ""
-    @State private var confirmPasswordError: String = ""
+    private var isFormValid: Bool {
+        [firstNameError, lastNameError, emailError, passwordError, confirmPasswordError]
+            .allSatisfy(
+                { $0.isEmpty }
+            ) && agreedToTerms
+    }
     
     private func validateEmail() {
-        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        let emailPredicate = NSPredicate(format:"SELF MATCHES %@", emailRegex)
-        isEmailValid = emailPredicate.evaluate(with: email)
-        emailError = isEmailValid ? "" : "Please enter a valid email address"
+        let pattern = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let valid = NSPredicate(format: "SELF MATCHES %@", pattern).evaluate(with: email)
+        emailError = valid ? "" : "Adresa de email nu este validă"
     }
     
     private func validatePassword() {
-        // Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number
-        let passwordRegex = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)[A-Za-z\\d]{8,}$"
-        let passwordPredicate = NSPredicate(format: "SELF MATCHES %@", passwordRegex)
-        isPasswordValid = passwordPredicate.evaluate(with: password)
-        passwordError = isPasswordValid ? "" : "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number"
+        let pattern = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)[A-Za-z\\d]{8,}$"
+        let valid = NSPredicate(format: "SELF MATCHES %@", pattern).evaluate(with: password)
+        passwordError = valid ? "" : "Parola trebuie să aibă minim 8 caractere, literă mare și cifră"
     }
     
-    private func validateNames() {
-        isFirstNameValid = firstName.count >= 2 && firstName.count <= 50
-        firstNameError = isFirstNameValid ? "" : "First name must be between 2 and 50 characters"
-        
-        isLastNameValid = lastName.count >= 2 && lastName.count <= 50
-        lastNameError = isLastNameValid ? "" : "Last name must be between 2 and 50 characters"
+    private func validateFirstName() {
+        firstNameError = (2...50).contains(firstName.count) ? "" : "Prenumele trebuie să aibă între 2 și 50 de caractere"
+    }
+
+    private func validateLastName() {
+        lastNameError = (2...50).contains(lastName.count) ? "" : "Numele trebuie să aibă între 2 și 50 de caractere"
     }
     
-    private func validatePlateNumbers() {
-        // If plateNumbers is empty, it's valid (since it's optional)
-        if plateNumbers.isEmpty {
-            isPlateNumberValid = true
-            plateNumberError = ""
-            return
-        }
-        // Only validate if a plate number is provided
-        let plateRegex = "^[A-Z0-9]{1,8}$"
-        let platePredicate = NSPredicate(format: "SELF MATCHES %@", plateRegex)
-        isPlateNumberValid = plateNumbers.allSatisfy { platePredicate.evaluate(with: $0.uppercased()) }
-        plateNumberError = isPlateNumberValid ? "" : "Please enter a valid plate number or leave it empty"
+    private func validateConfirmPassword() {
+        confirmPasswordError = (password == confirmPassword) ? "" : "Parolele nu coincid"
     }
     
-    private func validatePasswordMatch() {
-        doPasswordsMatch = password == confirmPassword
-        confirmPasswordError = doPasswordsMatch ? "" : "Passwords do not match"
-    }
     
-    private func isFormValid() -> Bool {
-        return !email.isEmpty && !password.isEmpty && !confirmPassword.isEmpty && password == confirmPassword && agreedToTerms
-    }
-    
-    private func handleSignUp() {
-        guard !isPreview else { return }
-        
-        isLoading = true
+    private func signUp() {
         Task {
             do {
-                try await signUp()
+                try await authViewModel.signUp(
+                    email: email,
+                    password: password,
+                    username: email.components(separatedBy: "@").first ?? "",
+                    firstName: firstName,
+                    lastName: lastName
+                )
+                dismiss()
             } catch {
-                await handleError(error)
-            }
-            await MainActor.run {
-                isLoading = false
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
             }
         }
     }
     
-    private func signUp() async throws {
-        do {
-            // Only check for existing plate numbers if one is provided
-            if !plateNumbers.isEmpty {
-                let db = Firestore.firestore()
-                let plateQuery = try await db.collection("users")
-                    .whereField("plateNumbers", arrayContainsAny: plateNumbers.map { $0.uppercased() })
-                    .getDocuments()
-                
-                guard plateQuery.documents.isEmpty else {
-                    throw SignUpError.plateNumberAlreadyExists
-                }
-            }
-            
-            // Create the user account
-            let result = try await Auth.auth().createUser(withEmail: email, password: password)
-            
-            // Create the user profile in Firestore
-            let db = Firestore.firestore()
-            var userData: [String: Any] = [
-                "firstName": firstName,
-                "lastName": lastName,
-                "email": email,
-                "createdAt": FieldValue.serverTimestamp(),
-                "isOnline": true,
-                "lastSeen": FieldValue.serverTimestamp(),
-                "profileImageURL": "",
-                "bio": "",
-                "friends": [],
-                "friendRequests": [],
-                "blockedUsers": [],
-                "privacySettings": [
-                    "showPlateNumber": true,
-                    "showOnlineStatus": true,
-                    "allowFriendRequests": true
-                ]
-            ]
-            
-            // Only add plate numbers if one is provided
-            if !plateNumbers.isEmpty {
-                userData["plateNumbers"] = plateNumbers.map { $0.uppercased() }
-            }
-            
-            try await db.collection("users").document(result.user.uid).setData(userData)
-            
-            // Update the auth state
-            await MainActor.run {
-                authViewModel.isAuthenticated = true
-                UserDefaults.standard.set(result.user.uid, forKey: "currentUserId")
-            }
-        } catch {
-            throw error
-        }
-    }
-    
-    private func handleError(_ error: Error) async {
-        await MainActor.run {
-            if let signUpError = error as? SignUpError {
-                switch signUpError {
-                case .plateNumberAlreadyExists:
-                    errorMessage = "This plate number is already registered."
-                }
-            } else if let authError = error as? AuthErrorCode {
-                switch authError.code {
-                case .emailAlreadyInUse:
-                    errorMessage = "This email is already registered. Please sign in instead."
-                case .invalidEmail:
-                    errorMessage = "Invalid email address."
-                case .weakPassword:
-                    errorMessage = "The password is too weak. Please choose a stronger password."
-                default:
-                    errorMessage = "An error occurred during sign up. Please try again."
-                }
-            } else {
-                errorMessage = "An error occurred during sign up. Please try again."
-            }
-            showError = true
-        }
-    }
+
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer(minLength: 24)
-                // Logo and Title
-                VStack(spacing: 8) {
-                    Image(systemName: "car.fill")
-                        .resizable()
-                        .frame(width: 40, height: 32)
-                        .foregroundColor(Color.blue)
-                    Text("Plateify")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(Color.blue)
-                }
-                // Illustration
-                Text("Creează Cont")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .padding(.top, 8)
-                Text("Conectează-te cu șoferii din jurul tău")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding(.bottom, 8)
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Email")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    HStack {
-                        Image(systemName: "envelope")
-                            .foregroundColor(.gray)
-                        TextField("Introdu adresa de email", text: $email)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
-                    .padding(12)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
+            VStack() {
+                VStack(spacing: 24) {
                     
-                    Text("Parolă")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    HStack {
-                        Image(systemName: "lock")
-                            .foregroundColor(.gray)
-                        if showPassword {
-                            TextField("Creează o parolă", text: $password)
-                        } else {
-                            SecureField("Creează o parolă", text: $password)
-                        }
-                        Button(action: { showPassword.toggle() }) {
-                            Image(systemName: showPassword ? "eye.slash" : "eye")
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .padding(12)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                    // Title and subtitle
+                    SignUpViewTitle()
                     
-                    Text("Confirmă Parola")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    // Form fields
+                    VStack(spacing: 16) {
+                        TextFieldView(label: "Prenume", text: $firstName, error: $firstNameError, onChange: validateFirstName)
+                        TextFieldView(label: "Nume", text: $lastName, error: $lastNameError, onChange: validateLastName)
+                        EmailField(email: $email, error: $emailError, onValidate: validateEmail)
+                        PasswordField(password: $password, error: $passwordError, onValidate: validatePassword)
+                        PasswordField(label: "Confirmă parola", password: $confirmPassword, error: $confirmPasswordError, onValidate: validateConfirmPassword)
+                    }
+                                        
+                    
+                    // Terms and conditions
+                    TermsToggle(isOn: $agreedToTerms)
+                                        
+                    
+                    // Sign up button
+                    SignUpButton(
+                        isLoading:authViewModel.isLoading,
+                        isFormValid: isFormValid,
+                        action: signUp
+                    )
+                    
+                    // Social sign up
+                    SocialSignUpView()
+                    
+                    // Sign in link
                     HStack {
-                        Image(systemName: "lock")
-                            .foregroundColor(.gray)
-                        if showConfirmPassword {
-                            TextField("Confirmă parola", text: $confirmPassword)
-                        } else {
-                            SecureField("Confirmă parola", text: $confirmPassword)
-                        }
-                        Button(action: { showConfirmPassword.toggle() }) {
-                            Image(systemName: showConfirmPassword ? "eye.slash" : "eye")
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .padding(12)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                }
-                
-                HStack(alignment: .center) {
-                    Toggle(isOn: $agreedToTerms) {
-                        VStack(alignment:.leading) {
-                            HStack(spacing: 2) {
-                                Text("Sunt de acord cu ")
-                                Button("Termenii și Condițiile") {}
-                                    .foregroundColor(.blue)
-                                Text("și")
-                                
-                            }
-                            
-                            Button("Politica de Confidențialitate") {}
-                                .foregroundColor(.blue)
-                        }.font(.footnote)
-                    }
-                    .toggleStyle(CheckboxToggleStyle())
-            
-            Spacer()
-                }
-                .padding(.top, 4)
-                
-                Button(action: handleSignUp) {
-                    if isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    } else {
-                        Text("Creează Cont")
-                            .fontWeight(.semibold)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(isFormValid() ? Color.blue : Color(.systemGray4))
-                .foregroundColor(.white)
-                .cornerRadius(8)
-                .disabled(!isFormValid() || isLoading)
-                
-                HStack {
-                    Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
-                    Text("Sau continuă cu")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
-                }
-                
-                HStack(spacing: 16) {
-                    Button(action: { /* TODO: Google sign up */ }) {
-                        HStack {
-                            Image(systemName: "g.circle")
-                            Text("Google")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(.systemGray4), lineWidth: 1)
-                        )
-                    }
-                    Button(action: { /* TODO: Apple sign up */ }) {
-                        HStack {
-                            Image(systemName: "applelogo")
-                            Text("Apple")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(.systemGray4), lineWidth: 1)
-                        )
-                    }
-                }
-                
-                HStack {
-                    Text("Ai deja un cont?")
-                    NavigationLink(destination: SignInView().environmentObject(authViewModel), isActive: $goToSignIn) {
+                        Text("Ai deja un cont?")
                         Button("Conectează-te") {
-                            goToSignIn = true
+                            dismiss()
                         }
                         .foregroundColor(.blue)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
-                Spacer(minLength: 24)
+                .padding(.horizontal, 24)
             }
-            .padding(.horizontal, 24)
             .navigationBarHidden(true)
+            .alert("Eroare", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) { showErrorAlert = false }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 }
@@ -539,6 +317,191 @@ extension EnvironmentValues {
     var isPreview: Bool {
         get { self[IsPreviewKey.self] }
         set { self[IsPreviewKey.self] = newValue }
+    }
+}
+
+private struct TextFieldView: View {
+    let label: String
+    @Binding var text: String
+    @Binding var error: String
+    let onChange: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.subheadline).fontWeight(.medium)
+            TextField(label, text: $text)
+                .autocapitalization(.words).disableAutocorrection(true)
+                .padding(12).background(Color(.systemGray6)).cornerRadius(8)
+                .onChange(of: text) { _ in onChange() }
+            if !error.isEmpty { Text(error).font(.caption).foregroundColor(.red) }
+        }
+    }
+}
+
+private struct PasswordField: View {
+    var label: String = "Parolă"
+    @Binding var password: String
+    @Binding var error: String
+    let onValidate: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(.subheadline).fontWeight(.medium)
+            HStack {
+                Image(systemName: "lock").foregroundColor(.gray)
+                SecureField(label, text: $password)
+                    .onChange(of: password) { _ in onValidate() }
+            }
+            .padding(12)
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
+            if !error.isEmpty { Text(error).font(.caption).foregroundColor(.red) }
+        }
+    }
+}
+
+private struct EmailField: View {
+    @Binding var email: String
+    @Binding var error: String
+    let onValidate: () -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Email").font(.subheadline).fontWeight(.medium)
+            HStack {
+                Image(systemName: "envelope").foregroundColor(.gray)
+                TextField("Email", text: $email)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .onChange(of: email) { _ in onValidate() }
+            }
+            .padding(12)
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
+            if !error.isEmpty { Text(error).font(.caption).foregroundColor(.red) }
+        }
+    }
+}
+
+private struct TermsToggle: View {
+    @Binding var isOn: Bool
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            Text("Sunt de acord cu Termenii și Condițiile și Politica de Confidențialitate")
+                .font(.footnote)
+        }
+        .toggleStyle(CheckboxToggleStyle())
+    }
+}
+
+private struct TermsAndConditionsView: View {
+    @Binding var agreedToTerms: Bool
+    
+    var body: some View {
+        HStack(alignment: .center) {
+            Toggle(isOn: $agreedToTerms) {
+                VStack(alignment: .leading) {
+                    HStack(spacing: 2) {
+                        Text("Sunt de acord cu ")
+                        Button("Termenii și Condițiile") {}
+                            .foregroundColor(.blue)
+                        Text("și")
+                    }
+                    Button("Politica de Confidențialitate") {}
+                        .foregroundColor(.blue)
+                }
+                .font(.footnote)
+            }
+            .toggleStyle(CheckboxToggleStyle())
+            Spacer()
+        }
+        .padding(.top, 4)
+    }
+}
+
+private struct SignUpButton: View {
+    let isLoading: Bool
+    let isFormValid: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            if isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+            } else {
+                Text("Creează Cont")
+                    .fontWeight(.semibold)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(isFormValid ? Color.blue : Color(.systemGray4))
+        .foregroundColor(.white)
+        .cornerRadius(8)
+        .disabled(!isFormValid || isLoading)
+    }
+}
+
+private struct SocialSignUpView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
+                Text("Sau continuă cu")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                Rectangle().frame(height: 1).foregroundColor(Color(.systemGray4))
+            }
+            
+            HStack(spacing: 16) {
+                SocialButton(icon: "g.circle", text: "Google") {
+                    // TODO: Google sign up
+                }
+                SocialButton(icon: "applelogo", text: "Apple") {
+                    // TODO: Apple sign up
+                }
+            }
+        }
+    }
+}
+
+private struct SocialButton: View {
+    let icon: String
+    let text: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                Text(text)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color(.systemGray4), lineWidth: 1)
+            )
+        }
+    }
+}
+
+
+extension SignUpView{
+    struct SignUpViewTitle: View {
+        var body: some View {
+            VStack(spacing: 4) {
+                Text("Creează Cont")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                Text("Conectează-te cu șoferii din jurul tău")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+        }
     }
 }
 

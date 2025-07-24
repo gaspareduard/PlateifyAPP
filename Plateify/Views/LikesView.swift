@@ -1,11 +1,9 @@
 import SwiftUI
 
-struct FriendsView: View {
-    @StateObject private var viewModel: FriendViewModel
-    
-    init(viewModel: FriendViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
-    }
+@MainActor
+struct LikesView: View {
+    @ObservedObject var viewModel: FriendViewModel
+    @State private var isShowingError = false
     
     var body: some View {
         NavigationStack {
@@ -14,372 +12,279 @@ struct FriendsView: View {
                 case .loading:
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                
-                case .error(let message):
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.red)
-                        
-                        Text("Error")
-                            .font(.title2)
-                            .fontWeight(.medium)
-                        
-                        Text(message)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.gray)
-                        
-                        Button("Retry") {
-                            viewModel.loadFriends()
+                        .onAppear {
+                            print("DEBUG: LikesView showing loading state")
                         }
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                    
+                case .error(let message):
+                    errorView(message: message)
+                        .onAppear {
+                            print("DEBUG: LikesView showing error state: \(message)")
+                            isShowingError = true
+                        }
+                    
+                case .loaded(_, _):
+                    if !viewModel.pendingFriendDetails.isEmpty {
+                        pendingRequestsContent(pendingDetails: viewModel.pendingFriendDetails)
+                            .onAppear {
+                                print("DEBUG: LikesView showing \(viewModel.pendingFriendDetails.count) pending requests")
+                            }
+                    } else {
+                        NoLikesView
+                            .onAppear {
+                                print("DEBUG: LikesView showing empty state")
+                            }
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                
-                case .loaded(let friends, let pendingRequests):
-                    friendsContent(friends: friends, pendingRequests: pendingRequests)
-                
-                case .searching(let results):
-                    searchResultsContent(results: results)
                 }
             }
-            .navigationTitle("Friends")
-            .searchable(text: $viewModel.searchText, prompt: "Search for users")
-            .onChange(of: viewModel.searchText) { _ in
-                viewModel.performSearch()
+        }
+        .alert("Error", isPresented: $isShowingError) {
+            Button("Retry") {
+                Task {
+                    print("DEBUG: Retrying friend loading")
+                    viewModel.loadFriends()
+                }
             }
-            .onAppear {
-                viewModel.startListening()
+            Button("OK", role: .cancel) {
+                isShowingError = false
             }
-            .onDisappear {
-                viewModel.stopListening()
+        } message: {
+            if case .error(let message) = viewModel.state {
+                Text(message)
             }
         }
     }
     
     // MARK: - Content Views
+    private func errorView(message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 50))
+                .foregroundColor(.red)
+            
+            Text("Error")
+                .font(.title2)
+                .fontWeight(.medium)
+            
+            Text(message)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.gray)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
     
-    private func friendsContent(friends: [Friend], pendingRequests: [Friend]) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Friend Requests Section
-                if !pendingRequests.isEmpty {
-                    Text("Friend Requests")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
-                    ForEach(pendingRequests) { request in
-                        FriendRequestCard(request: request) { action in
-                            Task {
-                                if action == "accept" {
-                                    await viewModel.acceptFriendRequest(request)
-                                } else if action == "decline" {
-                                    await viewModel.rejectFriendRequest(request)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+    private func pendingRequestsContent(pendingDetails: [FriendRequestDetail]) -> some View {
+        VStack(spacing: 16) {
+            // Header info
+            HStack {
+                Text("\(pendingDetails.count) Likes")
+                    .font(.title2)
+                    .fontWeight(.bold)
                 
-                // Friends Section
-                if !friends.isEmpty {
-                    Text("Friends")
-                        .font(.headline)
-                        .padding(.horizontal)
-                        .padding(.top, pendingRequests.isEmpty ? 0 : 16)
-                    
-                    ForEach(friends) { friend in
-                        FriendCard(friend: friend) {
-                            // Handle friend tap - could navigate to profile or chat
-                            print("DEBUG: Friend tapped: \(friend.displayName ?? "Unknown")")
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                
-                // Empty State
-                if friends.isEmpty && pendingRequests.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "person.2.slash")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        
-                        Text("No Friends Yet")
-                            .font(.title2)
-                            .fontWeight(.medium)
-                        
-                        Text("When people send you friend requests or you connect with others, they'll appear here.")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 80)
-                }
+                Spacer()
             }
-            .padding(.vertical)
+            .padding(.horizontal)
+            
+            // Grid of pending requests
+            ScrollView(.vertical) {
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ]) {
+                    ForEach(pendingDetails) { detail in
+                        PendingRequestCard(
+                            request: detail.friend,
+                            userSummary: detail.userSummary
+                        ) { action in
+                            handleFriendAction(detail: detail, action: action)
+                        }
+                    }
+                }.padding(.horizontal, 6)
+            }.ignoresSafeArea(.all, edges: .bottom)
+            
+            Spacer()
+        }.ignoresSafeArea(.all, edges: .bottom)
+    }
+    
+    private func handleFriendAction(detail: FriendRequestDetail, action: String) {
+        Task {
+            print("DEBUG: Handling friend action: \(action) for user: \(detail.friendId)")
+            do {
+                if action == "accept" {
+                    await viewModel.acceptFriendRequest(detail.friend)
+                } else if action == "decline" {
+                    await viewModel.rejectFriendRequest(detail.friend)
+                }
+            } catch {
+                print("DEBUG: Failed to handle friend action: \(error.localizedDescription)")
+                isShowingError = true
+            }
         }
     }
     
-    private func searchResultsContent(results: [User]) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if results.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 50))
-                            .foregroundColor(.gray)
-                        
-                        Text("No Results Found")
-                            .font(.title2)
-                            .fontWeight(.medium)
-                        
-                        Text("Try a different search term or check the spelling.")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 80)
-                } else {
-                    Text("Search Results")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
-                    ForEach(results, id: \.id) { user in
-                        UserSearchCard(user: user) {
-                            Task {
-                                if let userId = user.id {
-                                    await viewModel.sendFriendRequest(to: userId)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            }
-            .padding(.vertical)
+    private var NoLikesView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "heart.slash")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            
+            Text("No Likes Yet")
+                .font(.title2)
+                .fontWeight(.medium)
+            
+            Text("When people like your profile, they'll appear here.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.gray)
         }
     }
 }
 
-// MARK: - Friend Request Card
-struct FriendRequestCard: View {
+// MARK: - Pending Request Card
+@MainActor
+struct PendingRequestCard: View {
     let request: Friend
+    let userSummary: UserSummary?
     let onAction: (String) -> Void
     
+    @State private var offset: CGFloat = 0
+    @State private var rotation: Double = 0
+    @State private var isSwiped = false
+    
     var body: some View {
-        HStack(spacing: 12) {
-            // Profile Image
-            if let imageURL = request.profileImageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Color.gray.opacity(0.3)
-                }
-                .frame(width: 60, height: 60)
-                .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 60, height: 60)
-                    .foregroundColor(.gray)
-            }
-            
-            // User Info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(request.displayName ?? "Unknown User")
-                    .font(.headline)
-                
-                if let plate = request.plateNumber {
-                    Text(plate)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            }
+        ZStack {
+            // Profile Image Background
+            profileImage
+                .blur(radius: 0.5)
+                .brightness(-0.1)
+                .overlay(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.black.opacity(0.1), Color.black.opacity(0.5)]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .cornerRadius(12)
             
             Spacer()
             
-            // Action Buttons
-            HStack(spacing: 8) {
-                Button {
-                    onAction("accept")
-                } label: {
-                    Text("Accept")
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
+            VStack(alignment: .leading, spacing: 0) {
+                Text(userSummary?.firstName ?? "Loading...")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.white)
+                    .padding(.leading, 3)
+                    .padding(.bottom, 3)
                 
-                Button {
-                    onAction("decline")
-                } label: {
-                    Text("Decline")
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.gray.opacity(0.2))
-                        .foregroundColor(.primary)
-                        .cornerRadius(8)
+                if let plate = userSummary?.plateNumbers.first {
+                    NumberPlateDisplayView(plate: plate)
+                        .padding(.leading, 3)
+                        .padding(.bottom, 3)
                 }
             }
+            .frame(width: .infinity)
+            .background {
+                LinearGradient(colors: [.black.opacity(0.2), .clear], startPoint: .bottom, endPoint: .top)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .frame(width: cardWidth, height: cardHeight)
+        .offset(x: offset)
+        .rotationEffect(.degrees(rotation))
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture()
+                .onChanged { g in
+                    handleDragChanged(g)
+                }
+                .onEnded { g in
+                    handleDragEnded(g)
+                }
+        )
     }
-}
-
-// MARK: - Friend Card
-struct FriendCard: View {
-    let friend: Friend
-    let onTap: () -> Void
     
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                // Profile Image
-                if let imageURL = friend.profileImageURL, let url = URL(string: imageURL) {
-                    AsyncImage(url: url) { image in
+    private func handleDragChanged(_ g: DragGesture.Value) {
+        let dx = g.translation.width
+        let dy = g.translation.height
+        guard !isSwiped, abs(dx) > abs(dy) else { return }
+        offset = dx
+        rotation = Double(dx / cardWidth) * 15
+    }
+    
+    private func handleDragEnded(_ g: DragGesture.Value) {
+        let dx = g.translation.width
+        let dy = g.translation.height
+        guard abs(dx) > abs(dy) else {
+            withAnimation(.spring()) {
+                offset = 0; rotation = 0
+            }
+            return
+        }
+        
+        if dx > 100 {
+            withAnimation(.interpolatingSpring(stiffness: 200, damping: 15)) {
+                offset = 2 * cardWidth; rotation = 20; isSwiped = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                print("DEBUG: Card swiped right - accepting request")
+                onAction("accept")
+            }
+        } else if dx < -100 {
+            withAnimation(.interpolatingSpring(stiffness: 200, damping: 15)) {
+                offset = -2 * cardWidth; rotation = -20; isSwiped = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                print("DEBUG: Card swiped left - declining request")
+                onAction("decline")
+            }
+        } else {
+            withAnimation(.spring()) {
+                offset = 0; rotation = 0
+            }
+        }
+    }
+    
+    var cardWidth: CGFloat {
+        UIScreen.main.bounds.width / 2.1
+    }
+    
+    var cardHeight: CGFloat {
+        UIScreen.main.bounds.height / 3
+    }
+    
+    private var profileImage: some View {
+        Group {
+            if let imageURL = userSummary?.profileImageURL, let url = URL(string: imageURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
                         image
                             .resizable()
                             .scaledToFill()
-                    } placeholder: {
+                            .frame(width: cardWidth, height: cardHeight)
+                    case .failure:
+                        fallbackImage
+                    case .empty:
                         Color.gray.opacity(0.3)
-                    }
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .frame(width: 50, height: 50)
-                        .foregroundColor(.gray)
-                }
-                
-                // User Info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(friend.displayName ?? "Unknown User")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    if let plate = friend.plateNumber {
-                        Text(plate)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                    @unknown default:
+                        fallbackImage
                     }
                 }
-                
-                Spacer()
-                
-                // Online Indicator
-                if friend.isOnline {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 10, height: 10)
-                }
-                
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
-
-// MARK: - User Search Card
-struct UserSearchCard: View {
-    let user: User
-    let onAddFriend: () -> Void
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Profile Image
-            if let imageURL = user.profileImageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Color.gray.opacity(0.3)
-                }
-                .frame(width: 50, height: 50)
-                .clipShape(Circle())
             } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .frame(width: 50, height: 50)
-                    .foregroundColor(.gray)
+                fallbackImage
             }
-            
-            // User Info
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(user.firstName) \(user.lastName)")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Text("@\(user.username)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Add Friend Button
-            Button(action: onAddFriend) {
-                Image(systemName: "person.badge.plus")
-                    .font(.system(size: 20))
-                    .foregroundColor(.blue)
-            }
-            .buttonStyle(PlainButtonStyle())
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+        }.cornerRadius(10, corners: .allCorners)
+    }
+    
+    private var fallbackImage: some View {
+        Image(systemName: "person.fill")
+            .resizable()
+            .scaledToFit()
+            .padding(40)
+            .foregroundColor(.white)
+            .background(Color.gray.opacity(0.7))
     }
 }
 
-// MARK: - Preview
-struct FriendsView_Previews: PreviewProvider {
-    static var previews: some View {
-        let friendService = FriendService()
-        let viewModel = FriendViewModel(friendService: friendService)
-        
-        // For preview purposes, manually set the state
-        let friends = [TestData.friend]
-        
-        let pendingFriend = Friend(
-            id: "pending1",
-            userId: "sender1",
-            friendId: "testuser",
-            status: .pending,
-            createdAt: Date(),
-            updatedAt: Date(),
-            displayName: "Diana Popescu",
-            profileImageURL: "https://randomuser.me/api/portraits/women/68.jpg",
-            plateNumber: "B 234 XYZ",
-            isOnline: true
-        )
-        
-        // Set the state for preview
-        if let vm = viewModel as? FriendViewModel {
-            vm.state = .loaded(friends: friends, pendingRequests: [pendingFriend])
-        }
-        
-        return FriendsView(viewModel: viewModel)
-    }
-}
+    	
 

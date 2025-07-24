@@ -1,7 +1,7 @@
 import SwiftUI
 import PhotosUI
 extension OnboardingCarouselView{
-    struct OnboardingWelcomePage: View {
+    struct Onboarding0: View {
         @Binding var currentPage: Int
         var body: some View {
             VStack(spacing: 0) {

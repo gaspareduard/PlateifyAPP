@@ -6,7 +6,7 @@ struct NumberPlateDisplayView: View {
         HStack(spacing: 8) {
             // RO blue section
             Text("RO")
-                .font(.caption)
+                .font(.headline)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
                 .padding(.horizontal, 6)
@@ -15,7 +15,8 @@ struct NumberPlateDisplayView: View {
                 .cornerRadius(4)
             // Plate number
             Text(plate)
-                .font(.headline)
+                .font(.title3)
+                .fontWeight(.bold)
                 .foregroundColor(.black)
                 .padding(.trailing, 8)
         }
@@ -30,3 +31,7 @@ struct NumberPlateDisplayView: View {
         .shadow(color: Color(.systemGray4).opacity(0.08), radius: 1, x: 0, y: 1)
     }
 } 
+
+#Preview {
+    NumberPlateDisplayView(plate: "B123ABC")
+}
